@@ -14,7 +14,7 @@ export default function ManageSlots() {
       const res = await axios.get(`${API_URL}/doctors/me/slots`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      setSlots(res.data.data);
+      setSlots(Array.isArray(res.data) ? res.data : (res.data?.data || []));
     } catch (e) {
       console.error(e);
     }
@@ -85,6 +85,7 @@ export default function ManageSlots() {
                 id="slot-date-input"
                 type="date"
                 required
+                min={new Date().toISOString().split('T')[0]}
                 value={date}
                 onChange={e => setDate(e.target.value)}
                 className="border border-[#e5e7eb] rounded-xl px-4 py-3 text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#111827] bg-white"

@@ -32,7 +32,7 @@ def create_order(plan_name: str, db: Session = Depends(get_db), current_doctor: 
     order = client.order.create({
         "amount": amount * 100,
         "currency": "INR",
-        "receipt": f"sub_{current_doctor.id}_{plan_name}"
+        "receipt": f"sb_{current_doctor.id}"
     })
     return {"order_id": order["id"], "amount": amount, "currency": "INR"}
 

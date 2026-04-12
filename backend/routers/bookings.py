@@ -44,7 +44,7 @@ def create_booking(booking: schemas.BookingCreate, db: Session = Depends(get_db)
         order = client.order.create({
             "amount": int(advance * 100),
             "currency": "INR",
-            "receipt": f"booking_{new_booking.id}"
+            "receipt": f"bk_{new_booking.id}"
         })
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

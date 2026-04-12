@@ -11,6 +11,12 @@ export default function SlotPicker({ slots, selectedSlot, onSelectSlot }) {
   const dates = Object.keys(grouped).sort().slice(0, 7);
   const [activeDate, setActiveDate] = useState(dates[0] || null);
 
+  React.useEffect(() => {
+    if (dates.length > 0 && !dates.includes(activeDate)) {
+      setActiveDate(dates[0]);
+    }
+  }, [dates.join(',')]);
+
   if (slots.length === 0) {
     return (
       <div className="p-5 bg-[#f8f9fb] rounded-2xl border border-[#e5e7eb] text-center">

@@ -16,6 +16,7 @@ export default function DoctorDashboard() {
   const [appointments, setAppointments] = useState([]);
   const [earnings, setEarnings] = useState(null);
   const [showPlans, setShowPlans] = useState(false);
+  const [openSlotsCount, setOpenSlotsCount] = useState(0);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -25,6 +26,10 @@ export default function DoctorDashboard() {
         setAppointments(aps.data.data);
         const ern = await axios.get(`${API_URL}/doctors/me/earnings`, { headers: { Authorization: `Bearer ${token}` }});
         setEarnings(ern.data.data);
+        const slt = await axios.get(`${API_URL}/doctors/me/slots`, { headers: { Authorization: `Bearer ${token}` }});
+        const slotsData = Array.isArray(slt.data) ? slt.data : (slt.data?.data || []);
+        const freeSlots = slotsData.filter(s => !s.is_booked);
+        setOpenSlotsCount(freeSlots.length);
       } catch(e) {
         console.error(e);
       }
@@ -41,7 +46,7 @@ export default function DoctorDashboard() {
     { label: 'Bookings today', value: todayAppts.length, icon: '📅' },
     { label: 'Total earned', value: `₹${earnings?.total_earned || 0}`, icon: '💰' },
     { label: 'Rating', value: `${user?.avg_rating?.toFixed(1) || '—'} ★`, icon: '⭐' },
-    { label: 'Open slots', value: '—', icon: '🕐' },
+    { label: 'Open slots', value: openSlotsCount, icon: '🕐' },
   ];
 
   return (
