@@ -31,6 +31,8 @@ class UserOut(OrmBase, UserBase):
     id: UUID
     is_active: bool
     created_at: datetime
+    subscription_plan: Optional[SubscriptionPlanEnum] = None
+    subscription_expires_at: Optional[datetime] = None
 
 class DoctorBase(BaseModel):
     email: EmailStr
@@ -156,3 +158,42 @@ class RazorpayOrderOut(BaseModel):
     amount: int
     currency: str
     booking_id: UUID
+
+
+class PrescriptionCreate(BaseModel):
+    booking_id: UUID
+    diagnosis: Optional[str] = None
+    medicines: Optional[str] = None
+    instructions: Optional[str] = None
+    follow_up_date: Optional[date] = None
+    notes: Optional[str] = None
+
+
+class PrescriptionOut(OrmBase):
+    id: UUID
+    booking_id: UUID
+    doctor_id: UUID
+    patient_id: UUID
+    diagnosis: Optional[str] = None
+    medicines: Optional[str] = None
+    instructions: Optional[str] = None
+    follow_up_date: Optional[date] = None
+    notes: Optional[str] = None
+    created_at: datetime
+    doctor: Optional[DoctorOut] = None
+
+class PatientHistoryItem(BaseModel):
+    booking_id: UUID
+    date: date
+    start_time: time
+    diagnosis: Optional[str] = None
+    medicines: Optional[str] = None
+    instructions: Optional[str] = None
+    follow_up_date: Optional[date] = None
+    notes: Optional[str] = None
+
+class PatientHistoryOut(BaseModel):
+    patient: UserOut
+    history: List[PatientHistoryItem]
+    is_truncated: bool
+    plan_limit_message: Optional[str] = None

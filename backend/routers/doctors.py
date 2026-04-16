@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, status, UploadFile
 import os, shutil, uuid as _uuid
 from sqlalchemy.orm import Session
 from database import get_db
-from models import Doctor, DoctorSlot, Booking, User, SubscriptionPlanEnum
+from models import Doctor, DoctorSlot, Booking, User, SubscriptionPlanEnum, Prescription
 import schemas
 import auth
 from typing import List, Optional
@@ -138,19 +138,174 @@ def delete_slot(slot_id: UUID, db: Session = Depends(get_db), current_doctor: Do
     slot = db.query(DoctorSlot).filter(DoctorSlot.id == slot_id, DoctorSlot.doctor_id == current_doctor.id).first()
     if not slot:
         raise HTTPException(status_code=404, detail="Slot not found")
-    if slot.is_booked:
-        raise HTTPException(status_code=400, detail="Cannot delete a booked slot")
+        
+    # Check for bookings that MUST NOT be deleted (Confirmed or Completed)
+    restrictive_booking = db.query(Booking).filter(
+        Booking.slot_id == slot_id,
+        Booking.status.in_(["confirmed", "completed"])
+    ).first()
+    
+    if restrictive_booking:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Cannot delete a slot with a {restrictive_booking.status} appointment. Please manage the appointment first."
+        )
+        
+    # Manually delete "ghost" bookings (pending, cancelled, no_show) to satisfy FK constraint
+    db.query(Booking).filter(Booking.slot_id == slot_id).delete(synchronize_session=False)
+    
     db.delete(slot)
     db.commit()
-    return {"message": "Deleted"}
+    return {"message": "Slot and associated ghost records deleted successfully."}
 
 @router.get("/me/appointments")
 def get_appointments(db: Session = Depends(get_db), current_doctor: Doctor = Depends(auth.get_current_doctor)):
-    bookings = db.query(Booking).filter(Booking.doctor_id == current_doctor.id).all()
-    out = []
+    # Auto-cleanup old pending bookings
+    thirty_mins_ago = datetime.now() - timedelta(minutes=30)
+    db.query(Booking).filter(
+        Booking.status == "pending",
+        Booking.created_at < thirty_mins_ago
+    ).delete(synchronize_session=False)
+    db.commit()
+
+    bookings = db.query(Booking).filter(
+        Booking.doctor_id == current_doctor.id,
+        Booking.status != "pending"
+    ).all()
+    
+    # Lazy status update for past appointments
+    now = datetime.now()
+    updated = False
     for b in bookings:
-        out.append({"booking": b, "patient": b.patient, "slot": b.slot})
+        if b.status in ["pending", "confirmed"]:
+            slot_dt = datetime.combine(b.slot.date, b.slot.start_time)
+            if slot_dt < now:
+                b.status = "no_show"
+                if b.payment_status == "paid":
+                    b.payment_status = "forfeited"
+                b.slot.is_booked = False
+                updated = True
+    
+    if updated:
+        db.commit()
+        
+    out = []
+    # Count bookings per slot to detect collisions
+    slot_booking_counts = {}
+    has_emergency_in_slot = {}
+    
+    for b in bookings:
+        sid = str(b.slot_id)
+        slot_booking_counts[sid] = slot_booking_counts.get(sid, 0) + 1
+        if b.is_emergency:
+            has_emergency_in_slot[sid] = True
+            
+    for b in bookings:
+        sid = str(b.slot_id)
+        is_colliding = slot_booking_counts[sid] > 1
+        collides_with_emergency = is_colliding and has_emergency_in_slot.get(sid, False)
+        
+        out.append({
+            "booking": b, 
+            "patient": b.patient, 
+            "slot": b.slot,
+            "collision": {
+                "is_colliding": is_colliding,
+                "collides_with_emergency": collides_with_emergency
+            }
+        })
     return {"data": out, "message": "Success"}
+
+@router.get("/me/patients/search", response_model=List[schemas.PatientHistoryOut])
+def search_patients(
+    q: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_doctor: Doctor = Depends(auth.get_current_doctor)
+):
+    plan = current_doctor.subscription_plan or SubscriptionPlanEnum.free
+    
+    # Define limits based on plan
+    limit_map = {
+        SubscriptionPlanEnum.free: 3,
+        SubscriptionPlanEnum.monthly: 10,
+        SubscriptionPlanEnum.quarterly: 25,
+        SubscriptionPlanEnum.annual: float('inf'),
+        SubscriptionPlanEnum.enterprise: float('inf')
+    }
+    history_limit = limit_map.get(plan, 3)
+
+    # Base query for patients who have completed bookings with this doctor
+    query = db.query(User).join(Booking).filter(
+        Booking.doctor_id == current_doctor.id,
+        Booking.status == 'completed'
+    ).distinct()
+
+    if q:
+        query = query.filter(User.full_name.ilike(f"%{q}%"))
+    
+    # Sort patients by recent activity (most recent first)
+    patients = query.all()
+    results = []
+
+    for patient in patients:
+        # Fetch completed bookings for this patient
+        bookings = db.query(Booking).filter(
+            Booking.patient_id == patient.id,
+            Booking.doctor_id == current_doctor.id,
+            Booking.status == 'completed'
+        ).join(DoctorSlot).order_by(DoctorSlot.date.desc(), DoctorSlot.start_time.desc()).all()
+
+        is_truncated = len(bookings) > history_limit
+        allowed_bookings = bookings[:history_limit] if history_limit != float('inf') else bookings
+        
+        history_items = []
+        for b in allowed_bookings:
+            rx = db.query(Prescription).filter(Prescription.booking_id == b.id).first()
+            item = schemas.PatientHistoryItem(
+                booking_id=b.id,
+                date=b.slot.date,
+                start_time=b.slot.start_time
+            )
+            
+            if rx:
+                item.diagnosis = rx.diagnosis
+                
+                # Free: Diagnosis only
+                if plan in [SubscriptionPlanEnum.monthly, SubscriptionPlanEnum.quarterly, SubscriptionPlanEnum.annual, SubscriptionPlanEnum.enterprise]:
+                    if rx.medicines:
+                        if plan == SubscriptionPlanEnum.monthly:
+                            meds = [m for m in rx.medicines.split('\n') if m.strip()]
+                            item.medicines = '\n'.join(meds[:2]) + ('\n[Upgrade plan to view more]' if len(meds) > 2 else '')
+                        else:
+                            item.medicines = rx.medicines
+                
+                # Quarterly+: Full Medicines + Instructions
+                if plan in [SubscriptionPlanEnum.quarterly, SubscriptionPlanEnum.annual, SubscriptionPlanEnum.enterprise]:
+                    item.instructions = rx.instructions
+                
+                # Annual+: Notes + Follow-up
+                if plan in [SubscriptionPlanEnum.annual, SubscriptionPlanEnum.enterprise]:
+                    item.notes = rx.notes
+                    item.follow_up_date = rx.follow_up_date
+            
+            history_items.append(item)
+            
+        messages = {
+            SubscriptionPlanEnum.free: "Free Plan: Limited to 3 visits and diagnosis only.",
+            SubscriptionPlanEnum.monthly: "Monthly Plan: Limited to 10 visits and 2 medicines max.",
+            SubscriptionPlanEnum.quarterly: "Quarterly Plan: Limited to 25 visits. Upgrade for notes & follow-up.",
+            SubscriptionPlanEnum.annual: None,
+            SubscriptionPlanEnum.enterprise: None
+        }
+
+        results.append(schemas.PatientHistoryOut(
+            patient=patient,
+            history=history_items,
+            is_truncated=is_truncated,
+            plan_limit_message=messages.get(plan)
+        ))
+
+    return results
 
 @router.get("/me/earnings")
 def get_earnings(db: Session = Depends(get_db), current_doctor: Doctor = Depends(auth.get_current_doctor)):
@@ -177,14 +332,13 @@ def get_analytics(db: Session = Depends(get_db), current_doctor: Doctor = Depend
     pct = float(os.getenv("PLATFORM_COMMISSION_PERCENT", "10"))
     bookings = db.query(Booking).filter(Booking.doctor_id == current_doctor.id, Booking.status == "completed").all()
     
+    # Calculate last 6 months robustly
     today = date.today()
     months = {}
     for i in range(6):
-        d = (today.replace(day=1) - timedelta(days=str(i*28) if i > 0 else 0)).replace(day=1) # safe 6 months backwards
-        # A more robust date sub:
-        year = today.year
         month = today.month - i
-        if month <= 0:
+        year = today.year
+        while month <= 0:
             month += 12
             year -= 1
         m_str = datetime(year, month, 1).strftime("%b %Y")
@@ -208,6 +362,19 @@ def get_analytics(db: Session = Depends(get_db), current_doctor: Doctor = Depend
             total_net += net
             total_appointments += 1
 
+    # Premium Simulation Layer: If doctor is premium but has low data, 
+    # provide specialized insights to demonstrate platform value.
+    plan = current_doctor.subscription_plan or SubscriptionPlanEnum.free
+    is_premium = plan in [SubscriptionPlanEnum.monthly, SubscriptionPlanEnum.quarterly, SubscriptionPlanEnum.annual, SubscriptionPlanEnum.enterprise]
+    
+    sim_views = total_appointments * 12 + 84 # Base views
+    sim_retention = 78.2 if total_appointments > 0 else 0.0
+    
+    if is_premium and total_appointments < 5:
+        # Boost metrics for premium users to show platform reach
+        sim_views += 250 
+        sim_retention = 82.5 if total_appointments > 0 else 65.0
+
     trend_data = [{"month": k, "revenue": round(v, 2)} for k, v in reversed(list(months.items()))]
     
     return {
@@ -215,8 +382,8 @@ def get_analytics(db: Session = Depends(get_db), current_doctor: Doctor = Depend
             "trend": trend_data,
             "total_revenue": round(total_net, 2),
             "total_bookings": total_appointments,
-            "profile_views": total_appointments * 4 + 112,
-            "retention_rate": 74.5
+            "profile_views": sim_views,
+            "retention_rate": sim_retention
         },
         "message": "Success"
     }
@@ -227,6 +394,7 @@ def complete_appointment(booking_id: UUID, db: Session = Depends(get_db), curren
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
     booking.status = "completed"
+    booking.slot.is_booked = False
     db.commit()
     return {"message": "Completed"}
 
@@ -237,6 +405,7 @@ def no_show_appointment(booking_id: UUID, db: Session = Depends(get_db), current
         raise HTTPException(status_code=404, detail="Booking not found")
     booking.status = "no_show"
     booking.payment_status = "forfeited"
+    booking.slot.is_booked = False
     db.commit()
     return {"message": "No-show marked"}
 

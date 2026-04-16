@@ -17,6 +17,9 @@ export default function DoctorDashboard() {
   const [earnings, setEarnings] = useState(null);
   const [showPlans, setShowPlans] = useState(false);
   const [openSlotsCount, setOpenSlotsCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [patients, setPatients] = useState([]);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -35,12 +38,40 @@ export default function DoctorDashboard() {
       }
     };
     fetchDashboard();
+    
+    // Auto-fetch patients on mount
+    const fetchPatientsInitial = async () => {
+      setSearching(true);
+      try {
+        const res = await axios.get(`${API_URL}/doctors/me/patients/search`, {
+          headers: { Authorization: `Bearer ${sessionStorage.getItem('token')}` }
+        });
+        setPatients(Array.isArray(res.data) ? res.data : []);
+      } catch (e) {
+        console.error("Error auto-fetching history", e);
+      } finally {
+        setSearching(false);
+      }
+    };
+    fetchPatientsInitial();
   }, []);
 
   const todayAppts = appointments.filter(a => {
     const today = new Date().toISOString().split('T')[0];
     return a.slot?.date === today;
   });
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    setSearching(true);
+    try {
+      const res = await axios.get(`${API_URL}/doctors/me/patients/search?q=${searchQuery}`, {
+        headers: { Authorization: `Bearer ${sessionStorage.getItem('token')}` }
+      });
+      setPatients(res.data);
+    } catch (e) { console.error(e); }
+    finally { setSearching(false); }
+  };
 
   const stats = [
     { label: 'Bookings today', value: todayAppts.length, icon: '📅' },
@@ -107,6 +138,85 @@ export default function DoctorDashboard() {
                   </div>
                 ))
               )}
+            </div>
+
+            {/* Patient History section */}
+            <div className="mt-8">
+              <h2 className="text-xl text-[#0d2b28] mb-4">Patient History Search</h2>
+              <form onSubmit={handleSearch} className="mb-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by patient name..."
+                    className="w-full border border-[#e5e7eb] rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a9e8f]"
+                  />
+                  <svg className="w-5 h-5 text-[#9ca3af] absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#1a9e8f] text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-[#158577]">
+                    Search
+                  </button>
+                </div>
+              </form>
+
+              {searching ? (
+                <div className="flex justify-center py-6"><div className="w-6 h-6 border-2 border-[#1a9e8f] border-t-transparent rounded-full animate-spin"/></div>
+              ) : patients.length > 0 ? (
+                <div className="space-y-4">
+                  {patients.map(p => (
+                    <div key={p.patient.id} className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-5">
+                      <div className="flex items-center gap-3 border-b border-[#e5e7eb] pb-3 mb-3">
+                         <div className="w-10 h-10 rounded-full bg-[#e6f7f5] text-[#1a9e8f] flex items-center justify-center font-medium">
+                           {p.patient.full_name?.charAt(0)}
+                         </div>
+                         <h3 className="font-semibold text-[#0d2b28]">{p.patient.full_name}</h3>
+                      </div>
+                      
+                      {p.plan_limit_message && (
+                        <div className="mb-4 bg-[#fffbeb] text-[#b45309] border border-[#fde68a] px-3 py-2 rounded-lg flex items-start gap-2 text-xs">
+                          <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                          <div>
+                            <p className="font-semibold">{p.plan_limit_message}</p>
+                            <button onClick={() => setShowPlans(true)} className="mt-1 text-[#b45309] font-semibold underline underline-offset-2">Upgrade now to unlock.</button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-4 border-l-2 border-[#f3f4f6] pl-4 ml-1">
+                        {p.history.map(item => (
+                          <div key={item.booking_id} className="relative">
+                            <span className="absolute -left-[21px] top-1.5 w-2 h-2 rounded-full bg-[#1a9e8f] ring-4 ring-white" />
+                            <div className="bg-[#f8f9fb] rounded-xl p-3 border border-[#e5e7eb]">
+                              <p className="text-xs font-semibold text-[#4b5563] mb-1">{item.date} at {item.start_time?.slice(0, 5)}</p>
+                              
+                              {item.diagnosis && <p className="text-sm font-medium text-[#0d2b28] mb-1">Diagnosis: {item.diagnosis}</p>}
+                              
+                              {item.medicines && <div className="mt-2 text-sm text-[#374151] font-mono whitespace-pre-line border-l-2 border-[#c8e8e5] pl-2">{item.medicines}</div>}
+                              {(!item.medicines && p.history.some(h => h.medicines)) && <p className="mt-2 text-xs text-[#9ca3af] italic italic flex items-center gap-1"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg> Medicines hidden. Upgrade required.</p>}
+                              
+                              {item.instructions && <div className="mt-2 text-sm bg-white p-2 rounded border border-[#e5e7eb]">Instructions: {item.instructions}</div>}
+                              {item.notes && <div className="mt-2 text-sm bg-white p-2 text-[#9ca3af] italic border border-[#e5e7eb] rounded">Notes: {item.notes}</div>}
+                              
+                              {item.follow_up_date && <p className="text-xs font-semibold text-[#1a9e8f] mt-2">Follow-up: {item.follow_up_date}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {p.is_truncated && (
+                        <div className="mt-3 text-center">
+                          <p className="text-xs text-[#9ca3af] italic flex items-center justify-center gap-1">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                            Older history hidden by plan limits.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
 

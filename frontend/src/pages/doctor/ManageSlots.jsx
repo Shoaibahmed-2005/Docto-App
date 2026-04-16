@@ -43,7 +43,7 @@ export default function ManageSlots() {
       });
       fetchSlots();
     } catch (e) {
-      alert("Cannot delete booked slot");
+      alert(e.response?.data?.detail || "Failed to delete slot. There might be an active booking.");
     }
   };
 
@@ -77,21 +77,28 @@ export default function ManageSlots() {
         </h1>
 
         {/* Add Slot Form */}
-        <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 mb-8">
-          <h2 className="text-lg font-medium text-[#0d2b28] mb-4">Add a Slot</h2>
-          <form onSubmit={addSlot} className="flex flex-col gap-6">
-            <div className="flex items-center gap-2 bg-[#f8f9fb] p-1.5 rounded-xl self-start border border-[#e5e7eb]">
-              <button type="button" onClick={() => setIsOnline(false)} className={`px-5 py-2 text-sm font-medium rounded-lg transition ${!isOnline ? 'bg-white shadow-sm text-[#0d2b28] border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'}`}>
-                At Clinic
-              </button>
-              <button type="button" onClick={() => setIsOnline(true)} className={`px-5 py-2 text-sm font-medium rounded-lg transition ${isOnline ? 'bg-white shadow-sm text-[#0d2b28] border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'}`}>
-                Online Video
-              </button>
+        <div className="bg-white rounded-[2rem] border border-[#e5e7eb] shadow-[0_8px_30px_rgba(0,0,0,0.02)] p-8 mb-10 overflow-hidden relative">
+          <div className="absolute top-0 left-0 w-2 h-full bg-[#1a9e8f]" />
+          <h2 className="text-xl font-bold text-[#0d2b28] mb-6 flex items-center gap-2">
+            <span className="w-8 h-8 rounded-xl bg-[#e6f7f5] text-[#1a9e8f] flex items-center justify-center text-lg">﹢</span>
+            Create New Availability
+          </h2>
+          <form onSubmit={addSlot} className="flex flex-col gap-8">
+            <div className="flex flex-col gap-3">
+               <label className="text-[10px] text-[#9ca3af] font-bold uppercase tracking-[0.2em] ml-1">Consultation Mode</label>
+               <div className="flex items-center gap-2 bg-[#f3f4f6] p-1.5 rounded-2xl w-fit border border-[#e5e7eb]">
+                <button type="button" onClick={() => setIsOnline(false)} className={`px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${!isOnline ? 'bg-white shadow-md text-[#1a9e8f] border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'}`}>
+                  🏥 In-Clinic
+                </button>
+                <button type="button" onClick={() => setIsOnline(true)} className={`px-6 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${isOnline ? 'bg-white shadow-md text-[#1a9e8f] border border-[#e5e7eb]' : 'text-[#6b7280] hover:text-[#374151]'}`}>
+                  💻 Video Call
+                </button>
+              </div>
             </div>
             
-            <div className="flex flex-wrap gap-4 items-end">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-[#6b7280] font-medium uppercase tracking-wide">Date</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] text-[#9ca3af] font-bold uppercase tracking-[0.2em] ml-1">Select Date</label>
                 <input
                   id="slot-date-input"
                   type="date"
@@ -99,37 +106,37 @@ export default function ManageSlots() {
                   min={new Date().toISOString().split('T')[0]}
                   value={date}
                   onChange={e => setDate(e.target.value)}
-                  className="border border-[#e5e7eb] rounded-xl px-4 py-3 text-sm text-[#0d2b28] focus:outline-none focus:ring-2 focus:ring-[#1a9e8f] bg-white w-40"
+                  className="border border-[#e5e7eb] rounded-2xl px-5 py-3.5 text-sm text-[#0d2b28] focus:outline-none focus:ring-2 focus:ring-[#1a9e8f] bg-white w-full font-medium"
                 />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-[#6b7280] font-medium uppercase tracking-wide">Start Time</label>
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] text-[#9ca3af] font-bold uppercase tracking-[0.2em] ml-1">From</label>
                 <input
                   id="slot-start-input"
                   type="time"
                   required
                   value={startTime}
                   onChange={e => setStartTime(e.target.value)}
-                  className="border border-[#e5e7eb] rounded-xl px-4 py-3 text-sm text-[#0d2b28] focus:outline-none focus:ring-2 focus:ring-[#1a9e8f] bg-white w-32"
+                  className="border border-[#e5e7eb] rounded-2xl px-5 py-3.5 text-sm text-[#0d2b28] focus:outline-none focus:ring-2 focus:ring-[#1a9e8f] bg-white w-full font-medium"
                 />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-[#6b7280] font-medium uppercase tracking-wide">End Time</label>
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] text-[#9ca3af] font-bold uppercase tracking-[0.2em] ml-1">To</label>
                 <input
                   id="slot-end-input"
                   type="time"
                   required
                   value={endTime}
                   onChange={e => setEndTime(e.target.value)}
-                  className="border border-[#e5e7eb] rounded-xl px-4 py-3 text-sm text-[#0d2b28] focus:outline-none focus:ring-2 focus:ring-[#1a9e8f] bg-white w-32"
+                  className="border border-[#e5e7eb] rounded-2xl px-5 py-3.5 text-sm text-[#0d2b28] focus:outline-none focus:ring-2 focus:ring-[#1a9e8f] bg-white w-full font-medium"
                 />
               </div>
               <button
                 id="add-slot-btn"
                 type="submit"
-                className="bg-[#1a9e8f] text-white rounded-xl px-8 py-3 text-sm font-medium hover:bg-[#158577] transition ml-2 shadow-sm"
+                className="bg-[#0d2b28] text-white rounded-2xl px-8 py-4 text-sm font-bold hover:bg-black transition-all active:scale-95 shadow-[0_10px_20px_rgba(0,0,0,0.1)]"
               >
-                Create Slot
+                Publish Slot
               </button>
             </div>
           </form>
@@ -139,33 +146,39 @@ export default function ManageSlots() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Date List */}
           <div>
-            <h2 className="text-sm font-medium text-[#6b7280] uppercase tracking-wide mb-3">Dates with Slots</h2>
-            <div className="space-y-1">
+            <h2 className="text-[10px] text-[#9ca3af] font-bold uppercase tracking-[0.2em] mb-4 ml-1">Calendar Overview</h2>
+            <div className="space-y-2">
               {dates.length === 0 ? (
-                <p className="text-sm text-[#9ca3af] py-4 text-center">No slots added yet.</p>
+                <div className="bg-[#f8f9fb] rounded-3xl border border-dashed border-[#e5e7eb] py-12 text-center">
+                  <p className="text-sm text-[#9ca3af]">No slots published.</p>
+                </div>
               ) : dates.map(d => {
                 const hasBooked = grouped[d]?.some(s => s.is_booked);
                 const freeCount = grouped[d]?.filter(s => !s.is_booked).length || 0;
+                const isActive = selectedDate === d;
                 return (
                   <button
                     key={d}
                     onClick={() => setSelectedDate(d)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                      selectedDate === d
-                        ? 'bg-[#1a9e8f] text-white'
-                        : 'border border-[#e5e7eb] text-[#374151] hover:bg-[#e6f7f5]'
+                    className={`group w-full flex items-center justify-between px-5 py-4 rounded-2xl transition-all duration-300 font-bold text-sm ${
+                      isActive
+                        ? 'bg-[#0d2b28] text-white shadow-lg'
+                        : 'bg-white border border-[#e5e7eb] text-[#374151] hover:border-[#1a9e8f] hover:bg-[#f0faf9]'
                     }`}
                   >
-                    <span>{formatDate(d)}</span>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-[#1a9e8f]' : 'bg-[#e5e7eb] group-hover:bg-[#1a9e8f]'}`} />
+                      <span>{formatDate(d)}</span>
+                    </div>
                     <div className="flex items-center gap-1.5">
                       {freeCount > 0 && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${selectedDate === d ? 'bg-white/20 text-white' : 'bg-[#d1fae5] text-[#065f46]'}`}>
-                          {freeCount} free
+                        <span className={`text-[10px] px-2 py-0.5 rounded-lg uppercase tracking-wider ${isActive ? 'bg-white/10 text-white' : 'bg-[#e6f7f5] text-[#1a9e8f]'}`}>
+                          {freeCount} Free
                         </span>
                       )}
                       {hasBooked && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${selectedDate === d ? 'bg-white/20 text-white' : 'bg-[#fee2e2] text-[#991b1b]'}`}>
-                          booked
+                        <span className={`text-[10px] px-2 py-0.5 rounded-lg uppercase tracking-wider ${isActive ? 'bg-amber-400 text-[#0d2b28]' : 'bg-amber-50 text-amber-600'}`}>
+                          • Booked
                         </span>
                       )}
                     </div>
@@ -195,45 +208,45 @@ export default function ManageSlots() {
                   {daySlots.map(s => (
                     <div
                       key={s.id}
-                      className={`flex flex-col gap-1.5 px-4 py-2.5 rounded-xl border min-w-[145px] transition-all shadow-sm ${
+                      className={`flex flex-col gap-3 px-6 py-5 rounded-[2rem] border min-w-[160px] transition-all duration-300 shadow-sm relative overflow-hidden group ${
                         s.is_booked
-                          ? 'bg-[#fef3c7] border-[#fcd34d]'
+                          ? 'bg-amber-50 border-amber-200'
                           : s.is_online
-                            ? 'bg-[#eff6ff] border-[#bfdbfe]'
-                            : 'bg-white border-[#e5e7eb]'
+                            ? 'bg-[#f0f7ff] border-[#bee0ff]'
+                            : 'bg-white border-[#e5e7eb] hover:border-[#1a9e8f]'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <span className={`text-sm font-bold tracking-wide ${s.is_booked ? 'text-[#92400e]' : s.is_online ? 'text-[#1e40af]' : 'text-[#374151]'}`}>
+                      <div className="flex items-center justify-between gap-4">
+                        <span className={`text-xl font-bold tracking-tight ${s.is_booked ? 'text-amber-800' : s.is_online ? 'text-blue-800' : 'text-[#0d2b28]'}`}>
                           {formatTime(s.start_time)}
                         </span>
                         {!s.is_booked && (
                           <button
                             id={`delete-slot-${s.id}`}
                             onClick={() => deleteSlot(s.id)}
-                            className={`${s.is_online ? 'text-[#93c5fd] hover:text-[#3b82f6]' : 'text-[#d1d5db] hover:text-[#ef4444]'} transition`}
+                            className={`p-1.5 rounded-lg transition-colors ${s.is_online ? 'text-blue-300 hover:bg-blue-100 hover:text-blue-600' : 'text-[#d1d5db] hover:bg-red-50 hover:text-red-500'}`}
                             title="Delete slot"
                           >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                           </button>
                         )}
                       </div>
-                      <div className="flex items-center justify-between mt-0.5">
+                      <div className="flex items-center justify-between">
                         {s.is_online ? (
-                          <span className={`text-[10px] uppercase font-bold tracking-wider flex items-center gap-1 ${s.is_booked ? 'text-[#b45309]' : 'text-[#3b82f6]'}`}>
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                            Video
+                          <span className={`text-[10px] uppercase font-bold tracking-widest flex items-center gap-1.5 ${s.is_booked ? 'text-amber-700' : 'text-blue-600'}`}>
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                            Video Consult
                           </span>
                         ) : (
-                          <span className={`text-[10px] uppercase font-bold tracking-wider flex items-center gap-1 ${s.is_booked ? 'text-[#b45309]' : 'text-[#9ca3af]'}`}>
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                            Clinic
+                          <span className={`text-[10px] uppercase font-bold tracking-widest flex items-center gap-1.5 ${s.is_booked ? 'text-amber-700' : 'text-[#6b7280]'}`}>
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#1a9e8f]" />
+                            In-Clinic
                           </span>
                         )}
                         {s.is_booked && (
-                          <span className="text-[10px] text-[#d97706] font-bold uppercase tracking-wider ml-1">Booked</span>
+                          <span className="text-[10px] bg-amber-400 text-[#0d2b28] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm">Booked</span>
                         )}
                       </div>
                     </div>

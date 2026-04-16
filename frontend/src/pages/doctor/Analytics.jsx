@@ -36,14 +36,14 @@ export default function Analytics() {
   const trend = data?.trend || [];
   const maxRev = Math.max(...trend.map(t => t.revenue), 100);
 
-  const StatBlock = ({ icon, label, value }) => (
-    <div className="bg-white rounded-2xl border border-[#e5e7eb] p-6 flex flex-col items-center text-center shadow-sm relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#1a9e8f]/5 to-transparent rounded-bl-full pointer-events-none" />
-      <div className="w-12 h-12 rounded-full bg-[#e6f7f5] text-[#1a9e8f] flex items-center justify-center text-xl mb-3">
+  const StatBlock = ({ icon, label, value, colorClass = "bg-[#e6f7f5] text-[#1a9e8f]" }) => (
+    <div className="group bg-white rounded-3xl border border-[#e5e7eb] p-6 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden active:scale-95">
+      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#1a9e8f]/10 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-500" />
+      <div className={`w-14 h-14 rounded-2xl ${colorClass} flex items-center justify-center text-2xl mb-4 group-hover:rotate-6 transition-transform shadow-inner`}>
         {icon}
       </div>
-      <p className="text-3xl font-semibold text-[#0d2b28]">{value}</p>
-      <p className="text-xs uppercase tracking-wide text-[#9ca3af] font-medium mt-1">{label}</p>
+      <p className="text-3xl font-bold text-[#0d2b28] tracking-tight">{value}</p>
+      <p className="text-[10px] uppercase tracking-[0.1em] text-[#9ca3af] font-bold mt-2">{label}</p>
     </div>
   );
 
@@ -118,30 +118,37 @@ export default function Analytics() {
               </div>
             )}
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-xl text-[#0d2b28]">Revenue Trend (Last 6 Months)</h2>
+              <div>
+                <h2 className="text-xl text-[#0d2b28]">Revenue Trend (Last 6 Months)</h2>
+                <p className="text-[10px] text-[#9ca3af] mt-1 font-medium flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Synced with completed visit records
+                </p>
+              </div>
               <span className="text-xs text-[#9ca3af] font-medium border border-[#e5e7eb] px-3 py-1.5 rounded-full">Net Earnings (INR)</span>
             </div>
 
-            <div className="h-64 flex items-end justify-between gap-2 overflow-hidden border-b border-[#e5e7eb] pb-2 relative">
+            <div className="h-64 flex items-end justify-between gap-3 overflow-hidden border-b border-[#e5e7eb] pb-2 relative">
               {/* Fake Y lines */}
-              <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
-                <div className="border-t border-[#e5e7eb] w-full" />
-                <div className="border-t border-[#e5e7eb] w-full" />
-                <div className="border-t border-[#e5e7eb] w-full" />
-                <div className="border-t border-[#e5e7eb] w-full" />
+              <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                {[0, 1, 2, 3].map(i => (
+                  <div key={i} className="border-t border-[#f3f4f6]" />
+                ))}
               </div>
 
               {trend.map((t, idx) => {
-                const heightPct = Math.max((t.revenue / maxRev) * 100, 2); // Min 2% height
+                const heightPct = Math.max((t.revenue / maxRev) * 100, 5);
                 return (
-                  <div key={idx} className="flex-1 flex flex-col items-center justify-end group z-10">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-[#0d2b28] text-white text-[10px] py-1 px-2 rounded mb-2 whitespace-nowrap shadow-md">
-                      ₹{t.revenue}
+                  <div key={idx} className="flex-1 flex flex-col items-center justify-end group z-10 h-full">
+                    <div className="opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[#0d2b28] text-white text-[10px] py-1.5 px-2.5 rounded-lg mb-2 whitespace-nowrap shadow-lg translate-y-2 group-hover:translate-y-0 font-bold border border-white/20">
+                      ₹{t.revenue.toLocaleString()}
                     </div>
                     <div 
-                      className="w-full max-w-[60px] bg-gradient-to-t from-[#1a9e8f] to-[#2fd1bf] rounded-t-lg transition-all duration-500 ease-out hover:opacity-80" 
-                      style={{ height: `${heightPct}%` }}
-                    />
+                      className="w-full max-w-[48px] bg-gradient-to-t from-[#1a9e8f] to-[#2fd1bf] rounded-xl transition-all duration-700 ease-out group-hover:brightness-110 shadow-[0_4px_12px_rgba(26,158,143,0.15)] group-hover:shadow-[0_8px_20px_rgba(26,158,143,0.25)] relative" 
+                      style={{ height: `${heightPct}%`, transitionDelay: `${idx * 50}ms` }}
+                    >
+                      <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl" />
+                    </div>
                   </div>
                 );
               })}

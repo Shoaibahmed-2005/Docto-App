@@ -54,8 +54,7 @@ def create_booking(booking: schemas.BookingCreate, db: Session = Depends(get_db)
         is_emergency=booking.is_emergency
     )
     db.add(new_booking)
-    db.commit()
-    db.refresh(new_booking)
+    db.flush() # Generate ID for receipt without committing
     
     client = razorpay.Client(auth=(os.getenv("RAZORPAY_KEY_ID", ""), os.getenv("RAZORPAY_KEY_SECRET", "")))
     try:
@@ -65,7 +64,11 @@ def create_booking(booking: schemas.BookingCreate, db: Session = Depends(get_db)
             "receipt": f"bk_{new_booking.id}"
         })
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Payment provider error: {str(e)}")
+    
+    db.commit()
+    db.refresh(new_booking)
     
     return schemas.RazorpayOrderOut(order_id=order["id"], amount=order["amount"], currency=order["currency"], booking_id=new_booking.id)
 
@@ -74,6 +77,11 @@ def confirm_payment(id: UUID, razorpay_payment_id: str, razorpay_signature: str,
     booking = db.query(Booking).filter(Booking.id == id, Booking.patient_id == current_patient.id).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+
+    # Safeguard against double booking
+    slot = db.query(DoctorSlot).filter(DoctorSlot.id == booking.slot_id).with_for_update().first()
+    if slot.is_booked and not booking.is_emergency:
+        raise HTTPException(status_code=400, detail="This slot has just been booked by someone else. Please contact support for a refund or select another slot.")
         
     secret = os.getenv("RAZORPAY_KEY_SECRET", "").encode()
     message = f"{razorpay_order_id}|{razorpay_payment_id}"
@@ -86,9 +94,7 @@ def confirm_payment(id: UUID, razorpay_payment_id: str, razorpay_signature: str,
     booking.payment_status = "paid"
     booking.status = "confirmed"
     
-    slot = db.query(DoctorSlot).filter(DoctorSlot.id == booking.slot_id).first()
     slot.is_booked = True
-    
     db.commit()
     return {"message": "Payment confirmed"}
 

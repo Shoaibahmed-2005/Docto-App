@@ -54,6 +54,8 @@ class User(Base):
     profile_photo = Column(String)
     created_at = Column(TIMESTAMP(timezone=True), default=func.now())
     is_active = Column(Boolean, default=True)
+    subscription_plan = Column(PgEnum(SubscriptionPlanEnum, name="subscription_plan_enum"), default=SubscriptionPlanEnum.free, nullable=True)
+    subscription_expires_at = Column(TIMESTAMP(timezone=True), nullable=True)
 
 
 class Doctor(Base):
@@ -159,3 +161,22 @@ class Admin(Base):
     password_hash = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), default=func.now())
+
+
+class Prescription(Base):
+    __tablename__ = "prescriptions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    booking_id = Column(UUID(as_uuid=True), ForeignKey("bookings.id"), unique=True, nullable=False)
+    doctor_id = Column(UUID(as_uuid=True), ForeignKey("doctors.id"), nullable=False)
+    patient_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    diagnosis = Column(Text, nullable=True)
+    medicines = Column(Text, nullable=True)
+    instructions = Column(Text, nullable=True)
+    follow_up_date = Column(Date, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(TIMESTAMP(timezone=True), default=func.now())
+
+    booking = relationship("Booking", backref="prescription", uselist=False)
+    doctor = relationship("Doctor", backref="prescriptions")
+    patient = relationship("User", backref="prescriptions")

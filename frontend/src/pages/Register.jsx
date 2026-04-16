@@ -102,9 +102,8 @@ export default function Register() {
                 type="button"
                 id={`register-role-${r}`}
                 onClick={() => { setRole(r); setStep(1); }}
-                className={`px-6 py-2 rounded-full text-sm font-medium capitalize transition-all ${
-                  role === r ? 'bg-[#1a9e8f] text-white shadow-sm' : 'text-[#5a7370] hover:text-[#1a9e8f]'
-                }`}
+                className={`px-6 py-2 rounded-full text-sm font-medium capitalize transition-all ${role === r ? 'bg-[#1a9e8f] text-white shadow-sm' : 'text-[#5a7370] hover:text-[#1a9e8f]'
+                  }`}
               >
                 {r}
               </button>
@@ -116,9 +115,8 @@ export default function Register() {
             <div className="flex items-center justify-center gap-2 mb-6">
               {[1, 2, 3].map(s => (
                 <div key={s} className="flex items-center gap-2">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                    s === step ? 'bg-[#1a9e8f] text-white' : s < step ? 'bg-[#10b981] text-white' : 'bg-[#f3f4f6] text-[#9ca3af]'
-                  }`}>
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${s === step ? 'bg-[#1a9e8f] text-white' : s < step ? 'bg-[#10b981] text-white' : 'bg-[#f3f4f6] text-[#9ca3af]'
+                    }`}>
                     {s < step ? '✓' : s}
                   </div>
                   {s < 3 && <div className={`w-8 h-0.5 ${s < step ? 'bg-[#10b981]' : 'bg-[#f3f4f6]'}`} />}
@@ -217,9 +215,8 @@ export default function Register() {
                 id="register-next-btn"
                 type="submit"
                 disabled={loading}
-                className={`flex-1 rounded-full py-3 text-sm font-medium transition ${
-                  loading ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed' : 'bg-[#1a9e8f] text-white hover:bg-[#158577]'
-                }`}
+                className={`flex-1 rounded-full py-3 text-sm font-medium transition ${loading ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed' : 'bg-[#1a9e8f] text-white hover:bg-[#158577]'
+                  }`}
               >
                 {loading ? 'Creating account…' : step < maxSteps ? `Next — Step ${step + 1} of ${maxSteps}` : 'Create Account'}
               </button>

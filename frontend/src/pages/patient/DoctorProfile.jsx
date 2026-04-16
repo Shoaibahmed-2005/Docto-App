@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../../contexts/AuthContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { formatDoctorName } from '../../utils/identityUtils';
 import SlotPicker from '../../components/SlotPicker';
 import StarRating from '../../components/StarRating';
 
@@ -79,70 +80,79 @@ export default function DoctorProfile() {
     : null;
 
   return (
-    <div className="bg-white min-h-screen">
-      {/* Hero Strip */}
-      <div className="bg-[#f0faf9] border-b border-[#e5e7eb]">
-        <div className="max-w-6xl mx-auto px-6 py-10">
-          <div className="flex flex-col md:flex-row gap-6 items-start">
+    <div className="bg-white min-h-screen">      {/* Hero Strip */}
+      <div className="bg-[#0d2b28] text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1a9e8f]/20 to-transparent pointer-events-none" />
+        <div className="max-w-6xl mx-auto px-6 py-16 relative z-10">
+          <div className="flex flex-col md:flex-row gap-10 items-center md:items-start text-center md:text-left">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
-              <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-[#e5e7eb] bg-white shadow-sm">
+              <div className="w-32 h-32 rounded-[2.5rem] bg-white p-1.5 shadow-2 shadow-emerald-500/20 ring-4 ring-emerald-500/10 overflow-hidden">
                 {photoUrl ? (
-                  <img src={photoUrl} alt={doctor.full_name} className="w-full h-full object-cover" />
+                  <img src={photoUrl} alt={doctor.full_name} className="w-full h-full object-cover rounded-[2.2rem]" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[#374151] text-3xl font-medium">
+                  <div className="w-full h-full flex items-center justify-center bg-[#f0faf9] text-[#0d2b28] text-4xl font-bold rounded-[2.2rem]">
                     {initials}
                   </div>
                 )}
               </div>
               {doctor.is_verified && (
-                <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#10b981] flex items-center justify-center border-2 border-white shadow-sm" title="Verified">
-                  <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
+                <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-2xl bg-[#1a9e8f] flex items-center justify-center border-4 border-[#0d2b28] shadow-lg" title="Verified Provider">
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 </div>
               )}
             </div>
 
             {/* Info */}
-            <div className="flex-grow">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-3xl text-[#0d2b28]">
-                  {doctor.full_name}
+            <div className="flex-grow space-y-4">
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-4">
+                <h1 className="text-4xl font-bold tracking-tight">
+                  {formatDoctorName(doctor.full_name)}
                 </h1>
                 {['annual', 'quarterly', 'enterprise'].includes(doctor.subscription_plan) && (
-                  <span className="flex-shrink-0 inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-white text-[11px] font-bold tracking-wider shadow-sm mt-1" title="Premium Plan">
-                    <svg className="w-3.5 h-3.5 text-amber-100" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    PRO
+                  <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-amber-400 text-[#0d2b28] text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-amber-400/20">
+                    <span className="text-base leading-none">★</span> PREMIUM PROVIDER
                   </span>
                 )}
               </div>
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                <span className="text-xs font-medium px-3 py-1 rounded-full bg-[#e6f7f5] text-[#1a9e8f]">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-2 rounded-xl bg-[#1a9e8f] text-[#0d2b28] shadow-sm">
                   {doctor.specialization}
                 </span>
                 {doctor.experience_years && (
-                  <span className="text-xs font-medium px-3 py-1 rounded-full bg-[#e6f7f5] text-[#1a9e8f]">
-                    {doctor.experience_years} yrs experience
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
+                    {doctor.experience_years} Years EXP
                   </span>
                 )}
               </div>
-              <div className="mt-3">
-                <StarRating rating={doctor.avg_rating || 0} readOnly totalReviews={doctor.total_reviews || 0} />
+              <div className="flex items-center justify-center md:justify-start gap-6 mt-6">
+                <div className="text-center md:text-left">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a9e8f] mb-1">Reviews</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-bold">{doctor.avg_rating?.toFixed(1) || '0.0'}</span>
+                    <div className="text-[#f59e0b] text-xl">★</div>
+                  </div>
+                </div>
+                <div className="w-px h-10 bg-white/10" />
+                <div className="text-center md:text-left">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#1a9e8f] mb-1">Patients</p>
+                  <p className="text-2xl font-bold">{doctor.total_reviews || 0}+</p>
+                </div>
               </div>
             </div>
 
-            {/* Book CTA */}
-            <div className="flex-shrink-0">
-              <a href="#availability" className="bg-[#1a9e8f] text-white rounded-full px-7 py-3 text-sm font-medium hover:bg-[#158577] transition inline-block">
-                Book Appointment
-              </a>
+            {/* Fast Book */}
+            <div className="hidden lg:block">
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-[2.5rem] text-center w-56">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-100/60 mb-2">Starts from</p>
+                <p className="text-3xl font-bold mb-6">₹{doctor.consultation_fee}</p>
+                <a href="#availability" className="block w-full bg-[#1a9e8f] text-[#0d2b28] py-4 rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-white transition-colors">Book Now</a>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
 
       {/* Content */}
       <div className="max-w-6xl mx-auto px-6 py-10">
@@ -216,7 +226,7 @@ export default function DoctorProfile() {
                           </div>
                           <div>
                             <p className="font-medium text-[#0d2b28] text-sm capitalize">{r.patient_name}</p>
-                            <p className="text-xs text-[#9ca3af] mt-0.5">{new Date(r.created_at).toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'})}</p>
+                            <p className="text-xs text-[#9ca3af] mt-0.5">{new Date(r.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                           </div>
                         </div>
                         <StarRating rating={r.rating} readOnly />
@@ -248,9 +258,8 @@ export default function DoctorProfile() {
                   else document.getElementById('availability')?.scrollIntoView({ behavior: 'smooth' });
                 }}
                 disabled={!selectedSlot && !!user}
-                className={`w-full mt-5 rounded-full py-3 text-sm font-medium transition ${
-                  selectedSlot ? 'bg-[#1a9e8f] text-white hover:bg-[#158577]' : 'bg-[#f3f4f6] text-[#9ca3af] cursor-default'
-                }`}
+                className={`w-full mt-5 rounded-full py-3 text-sm font-medium transition ${selectedSlot ? 'bg-[#1a9e8f] text-white hover:bg-[#158577]' : 'bg-[#f3f4f6] text-[#9ca3af] cursor-default'
+                  }`}
               >
                 {!user ? 'Login to Book' : selectedSlot ? 'Book Appointment' : 'Select a slot below'}
               </button>
@@ -276,7 +285,7 @@ export default function DoctorProfile() {
             <div id="availability">
               <h2 className="text-xl text-[#0d2b28] mb-4">Availability</h2>
               <SlotPicker slots={slots} selectedSlot={selectedSlot} onSelectSlot={setSelectedSlot} />
-              
+
               {slots.length === 0 && !isEmergency && (
                 <div className="mt-4 p-3.5 bg-[#eff6ff] border border-[#bfdbfe] rounded-lg flex items-start gap-2.5">
                   <svg className="w-4 h-4 text-[#3b82f6] mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>

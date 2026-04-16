@@ -11,9 +11,8 @@ export default function StarRating({ rating, setRating, readOnly = false, totalR
           <svg
             key={star}
             onClick={() => !readOnly && setRating && setRating(star)}
-            className={`w-5 h-5 transition-transform ${!readOnly ? 'cursor-pointer hover:scale-110' : ''} ${
-              star <= rating ? 'text-[#f59e0b]' : 'text-[#e5e7eb]'
-            }`}
+            className={`w-5 h-5 transition-transform ${!readOnly ? 'cursor-pointer hover:scale-110' : ''} ${star <= rating ? 'text-[#f59e0b]' : 'text-[#e5e7eb]'
+              }`}
             fill="currentColor"
             viewBox="0 0 20 20"
             xmlns="http://www.w3.org/2000/svg"

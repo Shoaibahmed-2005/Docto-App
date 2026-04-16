@@ -69,7 +69,7 @@ export default function SlotPicker({ slots, selectedSlot, onSelectSlot }) {
   return (
     <div className="space-y-4">
       {viewModeToggle}
-      
+
       {/* 7-day date strip */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {dates.map(date => {
@@ -80,11 +80,10 @@ export default function SlotPicker({ slots, selectedSlot, onSelectSlot }) {
             <button
               key={date}
               onClick={() => setActiveDate(date)}
-              className={`flex-shrink-0 flex flex-col items-center px-4 py-2.5 rounded-full text-sm font-medium transition-all min-w-[64px] ${
-                isActive
+              className={`flex-shrink-0 flex flex-col items-center px-4 py-2.5 rounded-full text-sm font-medium transition-all min-w-[64px] ${isActive
                   ? 'bg-[#1a9e8f] text-white shadow-sm'
                   : 'border border-[#e5e7eb] text-[#374151] hover:bg-[#e6f7f5]'
-              } ${!hasSlots ? 'opacity-50' : ''}`}
+                } ${!hasSlots ? 'opacity-50' : ''}`}
             >
               <span className="text-xs opacity-75">{day}</span>
               <span className="font-semibold text-base leading-tight">{d}</span>

@@ -4,6 +4,7 @@ from database import get_db
 from models import Review, Booking, Doctor, User
 import schemas
 import auth
+from uuid import UUID
 
 router = APIRouter()
 
@@ -36,3 +37,17 @@ def create_review(review: schemas.ReviewCreate, db: Session = Depends(get_db), c
     db.commit()
     db.refresh(new_review)
     return new_review
+
+@router.get("/doctors/{doctor_id}", response_model=dict)
+def get_doctor_reviews(doctor_id: UUID, db: Session = Depends(get_db)):
+    reviews = db.query(Review).filter(Review.doctor_id == doctor_id).order_by(Review.created_at.desc()).all()
+    out = []
+    for r in reviews:
+        out.append({
+            "id": r.id,
+            "patient_name": r.patient.full_name,
+            "rating": r.rating,
+            "review_text": r.review_text,
+            "created_at": r.created_at
+        })
+    return {"data": out}

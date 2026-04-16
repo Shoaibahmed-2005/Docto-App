@@ -1,8 +1,106 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { API_URL } from '../../contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { API_URL, useAuth } from '../../contexts/AuthContext';
+import { Link, useNavigate } from 'react-router-dom';
+import { formatDoctorName } from '../../utils/identityUtils';
 import StarRating from '../../components/StarRating';
+
+// ─── Prescription Viewer Modal ────────────────────────────────────────────────
+function PrescriptionViewer({ prescription, onClose, user }) {
+  const fmt = (d) => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
+  const canDownload = user?.subscription_plan === 'annual' || user?.subscription_plan === 'enterprise';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col border border-white/20">
+        {/* Header */}
+        <div className="flex items-center justify-between px-10 pt-8 pb-6 border-b border-[#e5e7eb] bg-gradient-to-br from-white to-[#f0faf9]">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white border border-[#e5e7eb] flex items-center justify-center shadow-sm">
+              <span className="text-xl font-bold italic text-[#1a9e8f]">Rx</span>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-[#0d2b28] tracking-tight">Prescription Details</h2>
+              <p className="text-xs text-[#9ca3af] font-bold uppercase tracking-widest mt-0.5">{formatDoctorName(prescription.doctor?.full_name)}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-[#9ca3af] hover:text-[#0d2b28] transition-colors">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-10 py-8 space-y-8">
+          {/* Top Info Grid */}
+          <div className="grid grid-cols-2 gap-6 p-5 bg-[#f8f9fb] rounded-2xl border border-[#e5e7eb]">
+             <div className="space-y-1">
+                <p className="text-[10px] font-bold text-[#9ca3af] uppercase tracking-[0.2em]">Issued Date</p>
+                <p className="text-sm font-bold text-[#0d2b28]">{fmt(prescription.created_at?.split('T')[0])}</p>
+             </div>
+             {prescription.follow_up_date && (
+                <div className="space-y-1 border-l border-[#e5e7eb] pl-6 text-right">
+                  <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-[0.2em]">Follow-up Recommendation</p>
+                  <p className="text-sm font-bold text-[#0d2b28]">{fmt(prescription.follow_up_date)}</p>
+                </div>
+             )}
+          </div>
+
+          {/* Diagnosis */}
+          <div className="space-y-3">
+             <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#1a9e8f]" />
+                <h3 className="text-[10px] font-bold text-[#9ca3af] uppercase tracking-[0.2em]">Clinical Assessment</h3>
+             </div>
+             <p className="text-base font-bold text-[#0d2b28] leading-relaxed bg-[#f0faf9] p-5 rounded-2xl border border-[#c8e8e5]">{prescription.diagnosis}</p>
+          </div>
+
+          {/* Medication Table Style */}
+          <div className="space-y-3">
+             <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#1a9e8f]" />
+                <h3 className="text-[10px] font-bold text-[#9ca3af] uppercase tracking-[0.2em]">Prescribed Medications</h3>
+             </div>
+             <div className="space-y-3">
+                {prescription.medicines.split('\n').filter(Boolean).map((line, i) => (
+                  <div key={i} className="flex items-center gap-4 p-4 bg-white border border-[#e5e7eb] rounded-2xl shadow-sm hover:border-[#1a9e8f] transition-colors">
+                     <span className="w-8 h-8 rounded-xl bg-[#f0faf9] text-[#1a9e8f] flex items-center justify-center text-xs font-bold">{i+1}</span>
+                     <p className="text-sm font-bold text-[#374151] font-mono tracking-tight">{line}</p>
+                  </div>
+                ))}
+             </div>
+          </div>
+
+          {/* Advice */}
+          {prescription.instructions && (
+            <div className="space-y-3">
+               <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#1a9e8f]" />
+                  <h3 className="text-[10px] font-bold text-[#9ca3af] uppercase tracking-[0.2em]">General Advice</h3>
+               </div>
+               <div className="p-5 bg-amber-50 rounded-2xl border border-amber-100 italic text-sm text-amber-900 leading-relaxed shadow-sm">
+                 "{prescription.instructions}"
+               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="px-10 py-8 bg-gray-50/50 border-t border-[#e5e7eb] flex items-center justify-between">
+           {canDownload ? (
+              <button className="flex items-center gap-2 px-8 py-3.5 bg-[#0d2b28] text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-[#0d2b28]/10">
+                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                 Download Medical Report
+              </button>
+           ) : (
+              <button onClick={() => navigate('/pricing')} className="flex items-center gap-2 px-8 py-3.5 bg-amber-400 text-[#0d2b28] rounded-2xl text-xs font-bold uppercase tracking-widest hover:scale-105 transition-all">
+                🌟 Unlock PDF Download
+              </button>
+           )}
+           <button onClick={onClose} className="px-6 py-2 text-sm font-bold text-[#9ca3af] hover:text-[#0d2b28] transition-colors">Close View</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const STATUS_STYLES = {
   confirmed: 'bg-[#d1fae5] text-[#065f46]',
@@ -18,7 +116,7 @@ const CancelCountdown = ({ booking, slot, status }) => {
   const [timeLeft, setTimeLeft] = useState('');
 
   useEffect(() => {
-    if (!booking || !slot || status !== 'confirmed') return;
+    if (!booking || !slot || !['confirmed', 'pending'].includes(status)) return;
     const calculate = () => {
       const bookedAt = new Date(booking.created_at);
       const cancelDeadline = new Date(bookedAt.getTime() + 6 * 3600 * 1000);
@@ -42,7 +140,7 @@ const CancelCountdown = ({ booking, slot, status }) => {
     return () => clearInterval(interval);
   }, [booking, slot, status]);
 
-  if (status !== 'confirmed') return null;
+  if (!['confirmed', 'pending'].includes(status)) return null;
   if (!timeLeft) return null;
   
   return (
@@ -56,6 +154,8 @@ const CancelCountdown = ({ booking, slot, status }) => {
 };
 
 export default function MyBookings() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('upcoming');
@@ -67,13 +167,35 @@ export default function MyBookings() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState('');
   const [reviewedIds, setReviewedIds] = useState(new Set()); // already reviewed
+  const [prescriptions, setPrescriptions] = useState({}); // bookingId -> prescription object
+  const [lockedPrescriptions, setLockedPrescriptions] = useState({}); // bookingId -> lock message
+  const [viewPrescription, setViewPrescription] = useState(null); // prescription obj
 
   const fetchBookings = async () => {
     try {
       const res = await axios.get(`${API_URL}/patients/me/bookings`, {
         headers: { Authorization: `Bearer ${sessionStorage.getItem('token')}` }
       });
-      setBookings(res.data.data || []);
+      const data = res.data.data || [];
+      setBookings(data);
+
+      const completedIds = data.filter(b => b.booking.status === 'completed').map(b => b.booking.id);
+      const rxMap = {};
+      const lockedMap = {};
+      await Promise.all(completedIds.map(async (id) => {
+        try {
+          const rxRes = await axios.get(`${API_URL}/prescriptions/booking/${id}`, {
+            headers: { Authorization: `Bearer ${sessionStorage.getItem('token')}` }
+          });
+          rxMap[id] = rxRes.data;
+        } catch (err) {
+          if (err.response?.status === 403) {
+            lockedMap[id] = err.response.data.detail.message || "Upgrade required";
+          }
+        }
+      }));
+      setPrescriptions(rxMap);
+      setLockedPrescriptions(lockedMap);
     } catch (err) {
       console.error(err);
     } finally {
@@ -99,7 +221,6 @@ export default function MyBookings() {
   };
 
   const handleRemovePending = async (bookingId) => {
-    if (!window.confirm('Remove this incomplete booking from your list?')) return;
     try {
       await axios.delete(`${API_URL}/bookings/${bookingId}`, {
         headers: { Authorization: `Bearer ${sessionStorage.getItem('token')}` }
@@ -169,6 +290,7 @@ export default function MyBookings() {
   );
 
   return (
+    <>
     <div className="min-h-screen bg-white py-12 px-4">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
@@ -177,16 +299,16 @@ export default function MyBookings() {
         </h1>
 
         {/* Tab Strip */}
-        <div className="flex gap-1 bg-[#f8f9fb] rounded-full p-1 w-fit mb-8 border border-[#e5e7eb]">
+        <div className="flex gap-2 bg-[#f3f4f6] rounded-2xl p-1.5 w-fit mb-10 border border-[#e5e7eb] shadow-inner">
           {TABS.map(tab => (
             <button
               key={tab}
               id={`bookings-tab-${tab}`}
               onClick={() => setActiveTab(tab)}
-              className={`px-5 py-2 rounded-full text-sm font-medium capitalize transition-all ${
+              className={`px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-300 ${
                 activeTab === tab
-                  ? 'bg-[#1a9e8f] text-white shadow-sm'
-                  : 'text-[#6b7280] hover:text-[#1a9e8f]'
+                  ? 'bg-[#0d2b28] text-white shadow-lg'
+                  : 'text-[#9ca3af] hover:text-[#0d2b28] hover:bg-white/50'
               }`}
             >
               {tab}
@@ -218,97 +340,172 @@ export default function MyBookings() {
               const balance = Math.max(0, finalFee - b.booking.advance_amount);
               
               return (
-              <div key={b.booking.id} className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-grow">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-full bg-[#e6f7f5] border border-[#c8e8e5] flex items-center justify-center text-sm font-medium text-[#1a9e8f]">
+              <div key={b.booking.id} className="bg-white rounded-[2.5rem] border border-[#e5e7eb] shadow-[0_8px_30px_rgba(0,0,0,0.02)] p-10 relative overflow-hidden group hover:shadow-[0_20px_50px_rgba(0,0,0,0.04)] transition-all duration-500">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#1a9e8f]/5 to-transparent rounded-bl-full pointer-events-none" />
+                
+                <div className="flex items-start justify-between gap-10">
+                  <div className="flex-grow space-y-8">
+                    {/* Header Info */}
+                    <div className="flex items-center gap-6">
+                      <div className="w-20 h-20 rounded-3xl bg-white border border-[#e5e7eb] shadow-sm flex items-center justify-center text-2xl font-bold text-[#1a9e8f] group-hover:scale-105 transition-transform duration-500">
                         {b.doctor?.full_name?.charAt(0) || 'D'}
                       </div>
                       <div>
-                        <p className="font-medium text-[#0d2b28]">{b.doctor?.full_name}</p>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#e6f7f5] text-[#1a9e8f]">{b.doctor?.specialization}</span>
+                         <p className="text-[10px] font-bold text-[#1a9e8f] uppercase tracking-[0.2em] mb-1">{b.doctor?.specialization}</p>
+                         <h3 className="text-2xl font-bold text-[#0d2b28] tracking-tight">{formatDoctorName(b.doctor?.full_name)}</h3>
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#6b7280] mt-3">
-                      <span>{formatDate(b.slot?.date)}</span>
-                      <span>&middot;</span>
-                      <span>{formatTime(b.slot?.start_time)}</span>
-                      <span>&middot;</span>
-                      {b.slot?.is_online ? (
-                        <span className="text-[#1d4ed8] font-medium flex items-center gap-1">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                          Online Video
-                        </span>
-                      ) : (
-                        <span className="line-clamp-1 max-w-[200px]" title={b.doctor?.clinic_address || b.doctor?.clinic_name}>
-                          {b.doctor?.clinic_address || b.doctor?.clinic_name || 'Clinic Visit'}
-                        </span>
-                      )}
+
+                    {/* Schedule Block */}
+                    <div className="flex flex-wrap items-center gap-6 bg-[#f8f9fb] p-6 rounded-3xl border border-[#e5e7eb]">
+                       <div className="flex items-center gap-3">
+                          <span className="text-xl">📅</span>
+                          <div>
+                            <p className="text-[10px] font-bold text-[#9ca3af] uppercase tracking-widest">Date</p>
+                            <p className="text-sm font-bold text-[#0d2b28]">{formatDate(b.slot?.date)}</p>
+                          </div>
+                       </div>
+                       <div className="w-px h-8 bg-[#e5e7eb]" />
+                       <div className="flex items-center gap-3">
+                          <span className="text-xl">⏰</span>
+                          <div>
+                            <p className="text-[10px] font-bold text-[#9ca3af] uppercase tracking-widest">Time Slot</p>
+                            <p className="text-sm font-bold text-[#0d2b28]">{formatTime(b.slot?.start_time)}</p>
+                          </div>
+                       </div>
+                       <div className="w-px h-8 bg-[#e5e7eb]" />
+                       <div className="flex items-center gap-3">
+                          <span className="text-xl">{b.slot?.is_online ? '💻' : '🏥'}</span>
+                          <div>
+                            <p className="text-[10px] font-bold text-[#9ca3af] uppercase tracking-widest">Type</p>
+                            <p className="text-sm font-bold text-[#1a9e8f]">{b.slot?.is_online ? 'Video Consult' : 'Clinic Visit'}</p>
+                          </div>
+                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm mt-1">
-                      <span className="text-[#0d2b28] font-medium">
-                        Advance: &#8377;{b.booking.advance_amount} 
-                        {b.booking.payment_status === 'paid' ? ' paid' : 
-                         b.booking.payment_status === 'refunded' ? ' refunded' : 
-                         b.booking.payment_status === 'forfeited' ? ' forfeited' : ' to pay'}
-                      </span>
-                      <span className="text-[#6b7280]">&middot;</span>
-                      <span className="text-[#6b7280] font-medium">Balance at clinic: &#8377;{balance.toFixed(2)}</span>
-                      {b.booking.is_emergency && <span className="text-[10px] bg-[#fee2e2] text-[#991b1b] px-2 py-0.5 rounded font-bold uppercase ml-1 shadow-sm">Emergency</span>}
+
+                    {/* Financial Summary */}
+                    <div className="flex flex-wrap items-center gap-4 pt-2">
+                       <span className="px-5 py-2 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl text-xs font-bold uppercase tracking-widest">
+                          Advance Paid: ₹{b.booking.advance_amount}
+                       </span>
+                       <span className="px-5 py-2 bg-[#0d2b28] text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-[#0d2b28]/10">
+                          Balance Due: ₹{balance.toFixed(0)}
+                       </span>
                     </div>
+
                     {b.booking.delay_minutes > 0 && (
-                      <div className="mt-3 text-xs text-[#92400e] font-medium bg-[#fef3c7] px-3 py-2 rounded-lg inline-block border border-[#fde68a]">
-                        Delayed by {b.booking.delay_minutes} mins (10% off final fee)
+                      <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100 flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-xl shadow-sm border border-amber-100 animate-pulse">⏳</div>
+                        <div>
+                           <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-1">Schedule Insight</p>
+                           <p className="text-sm font-bold text-[#0d2b28]">Wait requested ({b.booking.delay_minutes}m) &middot; <span className="text-emerald-600">10% Credit Applied</span></p>
+                        </div>
                       </div>
                     )}
+                    
                     {b.booking.status === 'no_show' && (
-                      <div className="mt-3 text-xs text-[#ef4444] font-medium bg-[#fef2f2] px-3 py-2 rounded-lg inline-block border border-[#fecaca]">
-                        Advance amount of &#8377;{b.booking.advance_amount} cannot be refunded.
+                      <div className="p-6 bg-red-50 rounded-3xl border border-red-100 flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-xl shadow-sm border border-red-100">⚠️</div>
+                        <div>
+                           <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-1">Non-Refundable Appointment</p>
+                           <p className="text-sm font-bold text-[#0d2b28]">For missed consultations, your advance payment cannot be refunded.</p>
+                        </div>
                       </div>
                     )}
+
+                    {b.booking.status === 'cancelled' && (
+                      (() => {
+                        const cancelledAt = new Date(b.booking.cancelled_at);
+                        const now = new Date();
+                        const isRefunded = (now - cancelledAt) > 3600 * 1000;
+                        return (
+                          <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100 flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-xl shadow-sm border border-emerald-100 text-emerald-600">
+                              {isRefunded ? '✅' : '💸'}
+                            </div>
+                            <div>
+                               <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">
+                                 {isRefunded ? 'Refund Successful' : 'Refund in Progress'}
+                               </p>
+                               <p className="text-sm font-bold text-[#0d2b28]">
+                                 {isRefunded 
+                                   ? `Your advance amount of ₹${b.booking.advance_amount} has been successfully refunded.`
+                                   : `Your advance amount of ₹${b.booking.advance_amount} will be refunded within 1 hour.`}
+                               </p>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    )}
+                    
                     <CancelCountdown booking={b.booking} slot={b.slot} status={b.booking.status} />
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <span className={`text-xs font-medium px-3 py-1 rounded-full capitalize ${STATUS_STYLES[b.booking.status] || STATUS_STYLES.pending}`}>
-                      {b.booking.status === 'no_show' ? 'missed' : b.booking.status}
+
+                  {/* Sidebar Actions */}
+                  <div className="flex flex-col items-end gap-3 min-w-[140px]">
+                    <span className={`text-[10px] font-bold uppercase tracking-[0.2em] px-5 py-2 rounded-xl border ${STATUS_STYLES[b.booking.status] || STATUS_STYLES.pending} shadow-sm`}>
+                      {b.booking.status === 'no_show' ? 'MISSED' : b.booking.status === 'pending' ? 'PAYMENT PENDING' : b.booking.status}
                     </span>
-                    {b.booking.status === 'confirmed' && (
-                      <>
-                        <button
-                          id={`cancel-booking-${b.booking.id}`}
-                          onClick={() => handleCancel(b.booking.id)}
-                          className="border border-[#fecaca] text-[#ef4444] rounded-full px-4 py-1.5 text-xs font-medium hover:bg-[#fef2f2] transition w-full"
-                        >
-                          Cancel
+                    
+                    <div className="flex flex-col gap-2 mt-2 w-full">
+                      {b.booking.status === 'confirmed' && b.slot?.is_online && (
+                        <a href="https://meet.google.com/new" target="_blank" rel="noreferrer" className="w-full bg-[#2563eb] text-white rounded-2xl py-4 text-[10px] font-bold uppercase tracking-widest text-center shadow-lg shadow-blue-500/20 hover:scale-[1.02] transition-transform">
+                          Join Link
+                        </a>
+                      )}
+                      
+                      {b.booking.status === 'confirmed' && (
+                        (() => {
+                          const bookedAt = new Date(b.booking.created_at);
+                          const cancelDeadline = new Date(bookedAt.getTime() + 6 * 3600 * 1000);
+                          const slotTime = new Date(`${b.slot?.date}T${b.slot?.start_time}`);
+                          const now = new Date();
+                          
+                          if (now < cancelDeadline && now < slotTime) {
+                            return (
+                              <button onClick={() => handleCancel(b.booking.id)} className="w-full text-red-400 bg-red-50 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-100 transition-colors">
+                                Cancel Appointment
+                              </button>
+                            );
+                          }
+                          return null;
+                        })()
+                      )}
+
+                      {b.booking.status === 'pending' && (
+                        <button onClick={() => handleRemovePending(b.booking.id)} className="w-full text-red-500 bg-red-50 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-100 transition-colors border border-red-100">
+                          Cancel Booking
                         </button>
-                        {b.slot?.is_online && (
-                          <a
-                            href={`https://meet.google.com/new`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="bg-[#2563eb] text-white rounded-full px-4 py-1.5 text-xs font-medium hover:bg-[#1d4ed8] transition flex items-center justify-center gap-1.5 shadow-sm mt-1 w-full"
-                          >
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                            Join Call
-                          </a>
-                        )}
-                      </>
-                    )}
-                    {b.booking.status === 'pending' && (
-                      <button
-                        onClick={() => handleRemovePending(b.booking.id)}
-                        className="text-[#9ca3af] hover:text-[#ef4444] text-xs font-medium transition underline underline-offset-2"
-                      >
-                        Remove
-                      </button>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Leave Review (completed) */}
                 {b.booking.status === 'completed' && (
                   <div className="mt-4 pt-4 border-t border-[#e5e7eb]">
+                    {/* View Prescription button */}
+                    {lockedPrescriptions[b.booking.id] ? (
+                      <div className="mb-3">
+                        <button
+                          onClick={() => navigate('/pricing')}
+                          className="flex items-center gap-1.5 border border-[#fde68a] text-[#b45309] bg-[#fffbeb] rounded-full px-4 py-1.5 text-xs font-medium hover:bg-[#fef3c7] transition"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                          Prescription Locked
+                        </button>
+                        <p className="text-[10px] text-[#9ca3af] mt-1 italic ml-1">{lockedPrescriptions[b.booking.id]}</p>
+                      </div>
+                    ) : prescriptions[b.booking.id] && (
+                      <button
+                        id={`view-rx-${b.booking.id}`}
+                        onClick={() => setViewPrescription(prescriptions[b.booking.id])}
+                        className="mb-3 flex items-center gap-1.5 border border-[#c8e8e5] text-[#1a9e8f] bg-[#f0fdf9] rounded-full px-4 py-1.5 text-xs font-medium hover:bg-[#e6f7f5] transition"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        View Prescription
+                      </button>
+                    )}
                     {reviewedIds.has(b.booking.id) ? (
                       <p className="text-sm text-[#1a9e8f] font-medium flex items-center gap-1.5">
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -365,11 +562,18 @@ export default function MyBookings() {
                   </div>
                 )}
               </div>
-            )})}
+            );
+          })}
           </div>
         )}
       </div>
     </div>
+
+    {/* Prescription Viewer */}
+    {viewPrescription && (
+      <PrescriptionViewer prescription={viewPrescription} onClose={() => setViewPrescription(null)} user={user} />
+    )}
+    </>
   );
 }
 

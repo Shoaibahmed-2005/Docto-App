@@ -1,37 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { API_URL } from '../../contexts/AuthContext';
+import { API_URL, useAuth } from '../../contexts/AuthContext';
 import DoctorCard from '../../components/DoctorCard';
 
 import StarRating from '../../components/StarRating';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const specialties = ["General Physician", "Pediatrician", "Gynecologist", "Surgeon", "Cardiologist", "Dermatologist", "Orthopedic", "Neurologist", "Psychiatrist", "Ophthalmologist", "ENT", "Dentist"];
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-6 space-y-4">
-      <div className="flex items-start gap-4">
-        <div className="w-14 h-14 rounded-full skeleton" />
-        <div className="flex-grow space-y-2">
-          <div className="h-4 w-3/4 skeleton rounded" />
-          <div className="h-3 w-1/2 skeleton rounded" />
+    <div className="bg-white rounded-[2rem] border border-[#e5e7eb] p-8 space-y-6 animate-pulse">
+      <div className="flex items-center gap-5">
+        <div className="w-20 h-20 rounded-3xl bg-gray-100" />
+        <div className="flex-grow space-y-3">
+          <div className="h-4 w-3/4 bg-gray-100 rounded" />
+          <div className="h-2 w-1/4 bg-gray-100 rounded" />
         </div>
       </div>
-      <div className="space-y-2">
-        <div className="h-3 w-full skeleton rounded" />
-        <div className="h-3 w-2/3 skeleton rounded" />
-        <div className="h-3 w-1/2 skeleton rounded" />
+      <div className="grid grid-cols-2 gap-4 py-4 border-y border-gray-50">
+        <div className="h-4 bg-gray-50 rounded" />
+        <div className="h-4 bg-gray-50 rounded" />
       </div>
-      <div className="flex gap-2">
-        <div className="flex-1 h-9 skeleton rounded-full" />
-        <div className="flex-1 h-9 skeleton rounded-full" />
-      </div>
+      <div className="h-14 bg-gray-100 rounded-2xl" />
     </div>
   );
 }
 
 export default function Home() {
+  const { user, role } = useAuth();
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -87,7 +84,7 @@ export default function Home() {
       setLoading(true);
       try {
         const res = await axios.get(`${API_URL}/doctors/search`, {
-          params: { 
+          params: {
             lat, lng, radius_km: radius,
             ...(specialty && { specialty }),
             ...(searchQuery && { query: searchQuery }),
@@ -110,41 +107,36 @@ export default function Home() {
   return (
     <div className="bg-white">
       {/* Hero Section */}
-      <section
-        className="relative py-24 px-6 overflow-hidden"
-        style={{
-          background: `radial-gradient(ellipse at 20% 50%, #c8ede9 0%, transparent 55%),
-                       radial-gradient(ellipse at 80% 20%, #d0f0ec 0%, transparent 55%), #fff`
-        }}
-      >
-        <div className="max-w-3xl mx-auto text-center">
-          <h1
-            className="text-5xl md:text-6xl text-[#0d2b28] leading-tight tracking-tight"
-           
-          >
-            Find the right doctor,<br />right near you.
+      <section className="relative py-32 px-6 overflow-hidden bg-[#0d2b28]">
+        {/* Dynamic Gradient Blobs */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#1a9e8f]/20 rounded-full blur-[120px] -mr-40 -mt-20 animate-pulse" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] -ml-40 -mb-20" />
+
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,1)]" />
+            <span className="text-white text-[10px] font-bold uppercase tracking-[0.2em]">India's Premium Healthcare Finder</span>
+          </div>
+          <h1 className="text-6xl md:text-7xl font-bold text-white leading-[1.1] tracking-tight mb-8">
+            Find the right doctor, <span className="text-[#1a9e8f]">right near you</span>
           </h1>
-          <p className="mt-5 text-lg text-[#6b7280] max-w-xl mx-auto leading-relaxed">
-            Search by specialty, location, rating and fee — instantly.
+          <p className="text-lg text-[#1a9e8f]/80 max-w-2xl mx-auto leading-relaxed mb-12">
+            Seamlessly book appointments with top-rated specialists in your area. Modern healthcare, reimagined for you.
           </p>
-          <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
-            <a
-              href="#doctors"
-              id="hero-find-doctors-btn"
-              className="bg-[#1a9e8f] text-white rounded-full px-7 py-3 text-sm font-medium hover:bg-[#158577] transition"
-            >
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="#doctors" className="w-full sm:w-auto bg-[#1a9e8f] text-white rounded-2xl px-10 py-5 text-sm font-bold uppercase tracking-widest hover:bg-white hover:text-[#0d2b28] hover:scale-105 transition-all shadow-[0_20px_40px_rgba(26,158,143,0.3)]">
               Find Doctors
             </a>
-            <button
-              id="hero-location-btn"
-              onClick={getLocation}
-              className="border border-[#c8e8e5] text-[#1a9e8f] rounded-full px-7 py-3 text-sm font-medium hover:bg-[#e6f7f5] transition flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Use My Location
+            {user && role === 'patient' && (
+              <Link to="/patient/bookings" className="w-full sm:w-auto bg-white/5 backdrop-blur-xl text-white border border-white/20 rounded-2xl px-10 py-5 text-sm font-bold uppercase tracking-widest hover:bg-[#1a9e8f] transition-all flex items-center justify-center gap-3">
+                <svg className="w-5 h-5 text-[#1a9e8f]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                My Bookings
+              </Link>
+            )}
+            <button onClick={getLocation} className="w-full sm:w-auto bg-white/5 backdrop-blur-xl text-white border border-white/10 rounded-2xl px-10 py-5 text-sm font-bold uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-3">
+              <svg className="w-5 h-5 text-[#1a9e8f]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              Nearby Clinics
             </button>
           </div>
         </div>
@@ -182,25 +174,23 @@ export default function Home() {
             <div className="flex items-center gap-2 border-l border-[#e5e7eb] pl-3 h-8 my-auto">
               <button
                 onClick={() => setIsOnline(!isOnline)}
-                className={`text-xs font-semibold px-4 py-1.5 rounded-full transition flex items-center gap-1.5 ${
-                  isOnline 
-                  ? 'bg-[#e6f7f5] text-[#1a9e8f] border border-[#1a9e8f]' 
+                className={`text-xs font-semibold px-4 py-1.5 rounded-full transition flex items-center gap-1.5 ${isOnline
+                  ? 'bg-[#e6f7f5] text-[#1a9e8f] border border-[#1a9e8f]'
                   : 'text-[#6b7280] border border-[#e5e7eb] hover:border-[#1a9e8f] hover:text-[#1a9e8f]'
-                }`}
+                  }`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
                 Video Consult
               </button>
-              
+
               <button
                 onClick={() => setIsEmergency(!isEmergency)}
-                className={`text-xs font-semibold px-4 py-1.5 rounded-full transition flex items-center gap-1.5 ${
-                  isEmergency 
-                  ? 'bg-red-50 text-red-600 border border-red-200' 
+                className={`text-xs font-semibold px-4 py-1.5 rounded-full transition flex items-center gap-1.5 ${isEmergency
+                  ? 'bg-red-50 text-red-600 border border-red-200'
                   : 'text-[#6b7280] border border-[#e5e7eb] hover:border-red-400 hover:text-red-500'
-                }`}
+                  }`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -225,20 +215,19 @@ export default function Home() {
               id="filter-location-btn"
               onClick={getLocation}
               disabled={locationStatus === 'detecting'}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition flex items-center gap-1.5 ml-auto border ${
-                locationStatus === 'set'
-                  ? 'border-[#10b981] text-[#10b981] bg-[#f0fdf4]'
-                  : locationStatus === 'denied'
+              className={`rounded-full px-4 py-2 text-sm font-medium transition flex items-center gap-1.5 ml-auto border ${locationStatus === 'set'
+                ? 'border-[#10b981] text-[#10b981] bg-[#f0fdf4]'
+                : locationStatus === 'denied'
                   ? 'border-[#ef4444] text-[#ef4444] bg-[#fef2f2]'
                   : locationStatus === 'detecting'
-                  ? 'border-[#f59e0b] text-[#f59e0b] bg-[#fffbeb]'
-                  : 'border-[#e5e7eb] text-[#0d2b28] hover:bg-[#e6f7f5]'
-              }`}
+                    ? 'border-[#f59e0b] text-[#f59e0b] bg-[#fffbeb]'
+                    : 'border-[#e5e7eb] text-[#0d2b28] hover:bg-[#e6f7f5]'
+                }`}
             >
               {locationStatus === 'detecting' ? (
                 <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
               ) : (
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -248,8 +237,8 @@ export default function Home() {
               )}
               {locationStatus === 'detecting' ? 'Detecting…'
                 : locationStatus === 'set' ? `📍 ${locationLabel || 'Location set ✓'}`
-                : locationStatus === 'denied' ? 'Allow location access'
-                : 'My Location'}
+                  : locationStatus === 'denied' ? 'Allow location access'
+                    : 'My Location'}
             </button>
           </div>
         </div>
@@ -300,5 +289,3 @@ export default function Home() {
     </div>
   );
 }
-
-

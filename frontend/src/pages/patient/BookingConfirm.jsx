@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL, useAuth } from '../../contexts/AuthContext';
+import { formatDoctorName } from '../../utils/identityUtils';
 
 export default function BookingConfirm() {
   const { id } = useParams(); // Slot ID
@@ -41,9 +42,9 @@ export default function BookingConfirm() {
       const res = await axios.post(`${API_URL}/bookings`, { doctor_id: doctor.id, slot_id: selectedSlot.id, is_emergency: isEmergency || false }, {
         headers: { Authorization: `Bearer ${sessionStorage.getItem('token')}` }
       });
-      
+
       const order = res.data;
-      
+
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: order.amount,
@@ -63,19 +64,19 @@ export default function BookingConfirm() {
             });
             alert("Booking Confirmed!");
             navigate('/patient/bookings');
-          } catch(err) {
+          } catch (err) {
             setError("Payment confirmation failed. Check your network.");
           }
         },
         prefill: { name: user?.full_name || '', email: user?.email || '' },
         theme: { color: "#1a9e8f" }
       };
-      
+
       if (window.Razorpay) {
         const rzp1 = new window.Razorpay(options);
         rzp1.open();
       } else {
-         setError("Razorpay SDK not loaded.");
+        setError("Razorpay SDK not loaded.");
       }
     } catch (e) {
       setError(e.response?.data?.detail || "Failed to create booking order.");
@@ -142,7 +143,7 @@ export default function BookingConfirm() {
               )}
             </div>
             <div>
-              <p className="font-medium text-[#0d2b28]">{doctor.full_name}</p>
+              <p className="font-medium text-[#0d2b28]">{formatDoctorName(doctor.full_name)}</p>
               <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#e6f7f5] text-[#1a9e8f] mt-1 inline-block">
                 {doctor.specialization}
               </span>
@@ -210,11 +211,10 @@ export default function BookingConfirm() {
           id="pay-advance-btn"
           onClick={handleBooking}
           disabled={loading}
-          className={`w-full py-3.5 rounded-full text-sm font-medium transition-all ${
-            loading
+          className={`w-full py-3.5 rounded-full text-sm font-medium transition-all ${loading
               ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed'
               : 'bg-[#1a9e8f] text-white hover:bg-[#158577]'
-          }`}
+            }`}
         >
           {loading ? 'Processing…' : `Proceed to Pay ₹${advance}`}
         </button>
